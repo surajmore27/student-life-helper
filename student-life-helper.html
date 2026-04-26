@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StudyFlow — Student Life Helper</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: #ffffff12;
+    --accent: #7c5cfc;
+    --accent2: #fc5c7d;
+    --accent3: #5cf0e0;
+    --accent4: #fcdc5c;
+    --text: #f0eeff;
+    --muted: #7a7a9a;
+    --success: #5cf0a0;
+    --glow: rgba(124,92,252,0.3);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 20%, rgba(124,92,252,0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(252,92,125,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 30% at 60% 10%, rgba(92,240,224,0.06) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Noise texture */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* HEADER */
+  header {
+    padding: 28px 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 40px;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.8rem;
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+  }
+
+  .logo span {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    background: none;
+    -webkit-text-fill-color: var(--muted);
+    letter-spacing: 3px;
+    display: block;
+    margin-top: 2px;
+    text-transform: uppercase;
+  }
+
+  .date-badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 8px 16px;
+    border-radius: 100px;
+  }
+
+  /* GRID LAYOUT */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 20px;
+  }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s, transform 0.3s;
+    animation: cardIn 0.6s ease both;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 20px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .card:hover { border-color: rgba(255,255,255,0.2); transform: translateY(-2px); }
+  .card:hover::before { opacity: 1; }
+
+  .card.todo-card::before { background: radial-gradient(circle at top right, rgba(124,92,252,0.06), transparent 60%); }
+  .card.assign-card::before { background: radial-gradient(circle at top right, rgba(252,92,125,0.06), transparent 60%); }
+  .card.time-card::before { background: radial-gradient(circle at top right, rgba(92,240,224,0.06), transparent 60%); }
+  .card.exam-card::before { background: radial-gradient(circle at top right, rgba(252,220,92,0.06), transparent 60%); }
+
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card:nth-child(1) { animation-delay: 0.1s; }
+  .card:nth-child(2) { animation-delay: 0.2s; }
+  .card:nth-child(3) { animation-delay: 0.3s; }
+  .card:nth-child(4) { animation-delay: 0.4s; }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+  }
+
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .card-icon {
+    width: 32px; height: 32px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+  }
+
+  .icon-purple { background: rgba(124,92,252,0.2); }
+  .icon-pink { background: rgba(252,92,125,0.2); }
+  .icon-teal { background: rgba(92,240,224,0.2); }
+  .icon-yellow { background: rgba(252,220,92,0.2); }
+
+  .badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    padding: 4px 10px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  /* BUTTONS */
+  .btn {
+    cursor: pointer;
+    border: none;
+    border-radius: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    font-size: 0.875rem;
+    padding: 10px 18px;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: white;
+    opacity: 0;
+    transition: opacity 0.2s;
+    border-radius: 12px;
+  }
+
+  .btn:hover::after { opacity: 0.07; }
+  .btn:active { transform: scale(0.97); }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #9b7dfd);
+    color: white;
+    box-shadow: 0 4px 20px rgba(124,92,252,0.35);
+  }
+
+  .btn-danger {
+    background: rgba(252,92,125,0.15);
+    color: var(--accent2);
+    border: 1px solid rgba(252,92,125,0.25);
+  }
+
+  .btn-success {
+    background: rgba(92,240,160,0.15);
+    color: var(--success);
+    border: 1px solid rgba(92,240,160,0.25);
+  }
+
+  .btn-ghost {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .btn-sm { padding: 6px 12px; font-size: 0.78rem; border-radius: 8px; }
+
+  /* INPUT STYLES */
+  .input-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  input[type="text"], input[type="date"], select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.875rem;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    flex: 1;
+  }
+
+  input[type="text"]:focus, input[type="date"]:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(124,92,252,0.15);
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.6); cursor: pointer; }
+  select option { background: var(--surface2); }
+
+  /* TODO LIST */
+  .todo-list { display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; padding-right: 4px; }
+
+  .todo-list::-webkit-scrollbar { width: 4px; }
+  .todo-list::-webkit-scrollbar-track { background: transparent; }
+  .todo-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+  .todo-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    transition: all 0.25s;
+    animation: itemIn 0.3s ease both;
+  }
+
+  @keyframes itemIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .todo-item.done {
+    opacity: 0.5;
+    border-color: rgba(92,240,160,0.2);
+    background: rgba(92,240,160,0.05);
+  }
+
+  .todo-item.done .todo-text { text-decoration: line-through; color: var(--muted); }
+
+  .todo-check {
+    width: 20px; height: 20px;
+    border-radius: 6px;
+    border: 2px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    font-size: 0.75rem;
+  }
+
+  .todo-check.checked {
+    background: var(--success);
+    border-color: var(--success);
+    color: #0a0a0f;
+    font-weight: 700;
+  }
+
+  .todo-text { flex: 1; font-size: 0.9rem; }
+
+  .todo-delete {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 0.8rem;
+    padding: 2px 6px;
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+
+  .todo-delete:hover { background: rgba(252,92,125,0.15); color: var(--accent2); }
+
+  .empty-state {
+    text-align: center;
+    padding: 30px;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  .empty-state .e-icon { font-size: 2rem; margin-bottom: 8px; opacity: 0.4; }
+
+  /* ASSIGNMENT TRACKER */
+  .assign-list { display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; }
+
+  .assign-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    animation: itemIn 0.3s ease both;
+    transition: all 0.2s;
+  }
+
+  .assign-item:hover { border-color: rgba(252,92,125,0.2); }
+
+  .priority-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .p-high { background: var(--accent2); box-shadow: 0 0 6px rgba(252,92,125,0.5); }
+  .p-mid { background: var(--accent4); box-shadow: 0 0 6px rgba(252,220,92,0.4); }
+  .p-low { background: var(--success); box-shadow: 0 0 6px rgba(92,240,160,0.4); }
+
+  .assign-info { flex: 1; }
+  .assign-name { font-size: 0.9rem; font-weight: 500; }
+  .assign-due {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .assign-sub {
+    font-size: 0.72rem;
+    padding: 3px 8px;
+    border-radius: 100px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  /* TIMETABLE */
+  .time-card { grid-column: 1 / -1; }
+
+  .timetable {
+    display: grid;
+    grid-template-columns: 80px repeat(5, 1fr);
+    gap: 6px;
+  }
+
+  .tt-header {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+    text-align: center;
+    padding: 8px 4px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .tt-time {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    padding-right: 8px;
+  }
+
+  .tt-cell {
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 0.75rem;
+    min-height: 52px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--muted);
+    transition: all 0.2s;
+    cursor: default;
+  }
+
+  .tt-cell.filled {
+    color: var(--text);
+    font-weight: 500;
+    border-color: transparent;
+  }
+
+  .tt-cell.filled:hover { filter: brightness(1.15); transform: scale(1.02); }
+
+  .c-purple { background: rgba(124,92,252,0.2); border-color: rgba(124,92,252,0.3) !important; }
+  .c-pink   { background: rgba(252,92,125,0.2); border-color: rgba(252,92,125,0.3) !important; }
+  .c-teal   { background: rgba(92,240,224,0.2); border-color: rgba(92,240,224,0.3) !important; }
+  .c-yellow { background: rgba(252,220,92,0.2); border-color: rgba(252,220,92,0.3) !important; }
+  .c-green  { background: rgba(92,240,160,0.2); border-color: rgba(92,240,160,0.3) !important; }
+
+  /* EXAM COUNTDOWN */
+  .exam-card { background: linear-gradient(135deg, #12121a, #15121f); }
+
+  .countdown-section {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    margin-bottom: 24px;
+  }
+
+  .countdown-display {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .cd-unit {
+    text-align: center;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 16px;
+    min-width: 64px;
+  }
+
+  .cd-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.8rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent4), #ffa040);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1;
+  }
+
+  .cd-label {
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-top: 4px;
+  }
+
+  .exam-info { flex: 1; }
+  .exam-name-display {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1.2rem;
+    margin-bottom: 4px;
+  }
+  .exam-date-display {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  .exam-inputs {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .progress-bar-wrap {
+    background: var(--surface2);
+    border-radius: 100px;
+    height: 6px;
+    margin-top: 14px;
+    overflow: hidden;
+  }
+
+  .progress-bar {
+    height: 100%;
+    border-radius: 100px;
+    background: linear-gradient(90deg, var(--accent4), var(--accent2));
+    transition: width 0.8s ease;
+  }
+
+  /* Stats row */
+  .stats-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 32px;
+    animation: cardIn 0.5s ease both;
+  }
+
+  .stat-card {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: all 0.3s;
+  }
+
+  .stat-card:hover { transform: translateY(-2px); }
+
+  .stat-icon {
+    width: 42px; height: 42px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+  }
+
+  .stat-val {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+
+  .stat-lbl { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+
+  /* Toast notification */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 20px;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 1000;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast-icon { font-size: 1.1rem; }
+
+  /* Section title */
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  /* Reset confirm */
+  .reset-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  footer {
+    text-align: center;
+    padding: 30px 0 20px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 900px) {
+    .grid { grid-template-columns: 1fr; }
+    .time-card { grid-column: auto; }
+    .stats-row { flex-wrap: wrap; }
+    .timetable { grid-template-columns: 60px repeat(5, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+  <header>
+    <div class="logo">
+      StudyFlow
+      <span>Student Life Helper</span>
+    </div>
+    <div class="date-badge" id="liveClock">—</div>
+  </header>
+
+  <!-- STATS ROW -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon icon-purple">📝</div>
+      <div>
+        <div class="stat-val" id="stat-tasks">0</div>
+        <div class="stat-lbl">Tasks Pending</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon icon-pink">📚</div>
+      <div>
+        <div class="stat-val" id="stat-assign">0</div>
+        <div class="stat-lbl">Assignments</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(92,240,160,0.2)">✅</div>
+      <div>
+        <div class="stat-val" id="stat-done">0</div>
+        <div class="stat-lbl">Completed</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon icon-yellow">⏰</div>
+      <div>
+        <div class="stat-val" id="stat-exam">—</div>
+        <div class="stat-lbl">Days to Exam</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="grid">
+
+    <!-- TO-DO LIST -->
+    <div class="card todo-card">
+      <div class="card-header">
+        <div class="card-title">
+          <div class="card-icon icon-purple">📝</div>
+          To-Do List
+        </div>
+        <span class="badge" id="todo-count">0 tasks</span>
+      </div>
+
+      <div class="input-row">
+        <input type="text" id="todo-input" placeholder="Add a new task…" maxlength="80">
+        <button class="btn btn-primary" onclick="addTodo()">+ Add Task</button>
+      </div>
+
+      <div class="todo-list" id="todo-list">
+        <div class="empty-state"><div class="e-icon">🎯</div>No tasks yet — add one above!</div>
+      </div>
+
+      <div class="reset-row">
+        <button class="btn btn-success btn-sm" onclick="markAllDone()">✓ Mark All Done</button>
+        <button class="btn btn-danger btn-sm" onclick="resetTodos()">↺ Reset List</button>
+      </div>
+    </div>
+
+    <!-- ASSIGNMENT TRACKER -->
+    <div class="card assign-card">
+      <div class="card-header">
+        <div class="card-title">
+          <div class="card-icon icon-pink">📚</div>
+          Assignment Tracker
+        </div>
+        <span class="badge" id="assign-count">0 due</span>
+      </div>
+
+      <div style="display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
+        <input type="text" id="assign-name" placeholder="Assignment name…" style="flex:2; min-width:120px;">
+        <input type="text" id="assign-sub" placeholder="Subject" style="flex:1; min-width:80px;">
+      </div>
+      <div style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;">
+        <input type="date" id="assign-date" style="flex:1;">
+        <select id="assign-priority" style="flex:1;">
+          <option value="high">🔴 High Priority</option>
+          <option value="mid" selected>🟡 Medium</option>
+          <option value="low">🟢 Low</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" style="width:100%; justify-content:center; margin-bottom:14px;" onclick="addAssignment()">+ Add Assignment</button>
+
+      <div class="assign-list" id="assign-list">
+        <div class="empty-state"><div class="e-icon">📎</div>No assignments tracked yet!</div>
+      </div>
+    </div>
+
+    <!-- TIMETABLE -->
+    <div class="card time-card">
+      <div class="card-header">
+        <div class="card-title">
+          <div class="card-icon icon-teal">🗓️</div>
+          Weekly Timetable
+        </div>
+        <span class="badge">Mon–Fri</span>
+      </div>
+      <div class="timetable" id="timetable"></div>
+    </div>
+
+    <!-- EXAM COUNTDOWN -->
+    <div class="card exam-card" style="grid-column: 1 / -1;">
+      <div class="card-header">
+        <div class="card-title">
+          <div class="card-icon icon-yellow">⏳</div>
+          Exam Countdown
+        </div>
+      </div>
+
+      <div class="countdown-section">
+        <div>
+          <div class="countdown-display">
+            <div class="cd-unit"><div class="cd-num" id="cd-days">00</div><div class="cd-label">Days</div></div>
+            <div class="cd-unit"><div class="cd-num" id="cd-hours">00</div><div class="cd-label">Hours</div></div>
+            <div class="cd-unit"><div class="cd-num" id="cd-mins">00</div><div class="cd-label">Mins</div></div>
+            <div class="cd-unit"><div class="cd-num" id="cd-secs">00</div><div class="cd-label">Secs</div></div>
+          </div>
+          <div class="progress-bar-wrap" style="width:100%; margin-top:14px;">
+            <div class="progress-bar" id="exam-progress" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="exam-info">
+          <div class="exam-name-display" id="exam-name-display">Set your exam ↓</div>
+          <div class="exam-date-display" id="exam-date-display">No date set</div>
+        </div>
+      </div>
+
+      <div class="exam-inputs">
+        <input type="text" id="exam-name" placeholder="Exam name (e.g. Physics Final)" style="flex:2; min-width:180px;">
+        <input type="date" id="exam-date" style="flex:1; min-width:160px;">
+        <button class="btn btn-primary" onclick="setExam()">🎯 Set Countdown</button>
+        <button class="btn btn-ghost" onclick="clearExam()">Clear</button>
+      </div>
+    </div>
+
+  </div>
+  <footer>StudyFlow © 2026 — Built for Students 🎓</footer>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span class="toast-icon" id="toast-icon">✅</span>
+  <span id="toast-msg">Done!</span>
+</div>
+
+<script>
+// ── LIVE CLOCK ──
+function updateClock() {
+  const now = new Date();
+  document.getElementById('liveClock').textContent =
+    now.toLocaleString('en-IN', { weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+}
+updateClock(); setInterval(updateClock, 1000);
+
+// ── TOAST ──
+function showToast(msg, icon='✅') {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  document.getElementById('toast-icon').textContent = icon;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ── STATE ──
+let todos = JSON.parse(localStorage.getItem('sf-todos') || '[]');
+let assignments = JSON.parse(localStorage.getItem('sf-assign') || '[]');
+let examData = JSON.parse(localStorage.getItem('sf-exam') || 'null');
+
+function save() {
+  localStorage.setItem('sf-todos', JSON.stringify(todos));
+  localStorage.setItem('sf-assign', JSON.stringify(assignments));
+  localStorage.setItem('sf-exam', JSON.stringify(examData));
+  updateStats();
+}
+
+// ── STATS ──
+function updateStats() {
+  const pending = todos.filter(t => !t.done).length;
+  const done = todos.filter(t => t.done).length;
+  document.getElementById('stat-tasks').textContent = pending;
+  document.getElementById('stat-assign').textContent = assignments.length;
+  document.getElementById('stat-done').textContent = done;
+  document.getElementById('todo-count').textContent = `${todos.length} task${todos.length !== 1 ? 's' : ''}`;
+  document.getElementById('assign-count').textContent = `${assignments.length} due`;
+}
+
+// ── TO-DO ──
+function renderTodos() {
+  const list = document.getElementById('todo-list');
+  if (!todos.length) {
+    list.innerHTML = '<div class="empty-state"><div class="e-icon">🎯</div>No tasks yet — add one above!</div>';
+    return;
+  }
+  list.innerHTML = todos.map((t, i) => `
+    <div class="todo-item ${t.done ? 'done' : ''}" id="ti-${i}">
+      <div class="todo-check ${t.done ? 'checked' : ''}" onclick="toggleTodo(${i})">
+        ${t.done ? '✓' : ''}
+      </div>
+      <span class="todo-text">${escapeHtml(t.text)}</span>
+      <button class="todo-delete" onclick="deleteTodo(${i})" title="Delete">✕</button>
+    </div>
+  `).join('');
+  updateStats();
+}
+
+function addTodo() {
+  const inp = document.getElementById('todo-input');
+  const val = inp.value.trim();
+  if (!val) { inp.focus(); showToast('Please enter a task!', '⚠️'); return; }
+  todos.unshift({ text: val, done: false });
+  inp.value = '';
+  renderTodos(); save();
+  showToast('Task added!', '📝');
+}
+
+function toggleTodo(i) {
+  todos[i].done = !todos[i].done;
+  renderTodos(); save();
+  showToast(todos[i].done ? 'Marked complete! 🎉' : 'Marked incomplete', todos[i].done ? '✅' : '↩️');
+}
+
+function deleteTodo(i) {
+  todos.splice(i, 1);
+  renderTodos(); save();
+  showToast('Task removed', '🗑️');
+}
+
+function markAllDone() {
+  if (!todos.length) return showToast('No tasks to mark!', '⚠️');
+  todos.forEach(t => t.done = true);
+  renderTodos(); save();
+  showToast('All tasks done! 🥳', '🎉');
+}
+
+function resetTodos() {
+  if (!todos.length) return showToast('List is already empty!', '⚠️');
+  todos = [];
+  renderTodos(); save();
+  showToast('List cleared', '↺');
+}
+
+document.getElementById('todo-input').addEventListener('keydown', e => { if(e.key === 'Enter') addTodo(); });
+
+// ── ASSIGNMENTS ──
+function renderAssignments() {
+  const list = document.getElementById('assign-list');
+  if (!assignments.length) {
+    list.innerHTML = '<div class="empty-state"><div class="e-icon">📎</div>No assignments tracked yet!</div>';
+    return;
+  }
+  const pClass = { high: 'p-high', mid: 'p-mid', low: 'p-low' };
+  list.innerHTML = assignments.map((a, i) => `
+    <div class="assign-item">
+      <div class="priority-dot ${pClass[a.priority]}"></div>
+      <div class="assign-info">
+        <div class="assign-name">${escapeHtml(a.name)}</div>
+        <div class="assign-due">Due: ${a.due || 'No date'}</div>
+      </div>
+      <span class="assign-sub">${escapeHtml(a.subject)}</span>
+      <button class="todo-delete" onclick="deleteAssign(${i})">✕</button>
+    </div>
+  `).join('');
+  updateStats();
+}
+
+function addAssignment() {
+  const name = document.getElementById('assign-name').value.trim();
+  const sub = document.getElementById('assign-sub').value.trim() || 'General';
+  const due = document.getElementById('assign-date').value;
+  const priority = document.getElementById('assign-priority').value;
+  if (!name) { showToast('Enter assignment name!', '⚠️'); return; }
+  assignments.unshift({ name, subject: sub, due, priority });
+  document.getElementById('assign-name').value = '';
+  document.getElementById('assign-sub').value = '';
+  document.getElementById('assign-date').value = '';
+  renderAssignments(); save();
+  showToast('Assignment added!', '📚');
+}
+
+function deleteAssign(i) {
+  assignments.splice(i, 1);
+  renderAssignments(); save();
+  showToast('Assignment removed', '🗑️');
+}
+
+// ── TIMETABLE ──
+const schedule = {
+  '9:00': ['Mathematics', '', 'Physics', '', 'Chemistry'],
+  '10:00': ['English', 'Mathematics', '', 'Biology', ''],
+  '11:00': ['', 'Chemistry', 'English', '', 'Mathematics'],
+  '12:00': ['Physics', '', 'Biology', 'English', ''],
+  '2:00': ['Chemistry', 'Biology', '', 'Mathematics', 'English'],
+  '3:00': ['', 'Physics', 'Mathematics', 'Chemistry', ''],
+};
+
+const colorMap = {
+  'Mathematics': 'c-purple',
+  'Physics': 'c-pink',
+  'Chemistry': 'c-teal',
+  'English': 'c-yellow',
+  'Biology': 'c-green',
+};
+
+const days = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
+
+function renderTimetable() {
+  const tt = document.getElementById('timetable');
+  let html = '<div class="tt-header"></div>';
+  days.forEach(d => html += `<div class="tt-header">${d}</div>`);
+
+  Object.entries(schedule).forEach(([time, slots]) => {
+    html += `<div class="tt-time">${time}</div>`;
+    slots.forEach(subj => {
+      if (subj) {
+        html += `<div class="tt-cell filled ${colorMap[subj] || ''}">${subj}</div>`;
+      } else {
+        html += `<div class="tt-cell">—</div>`;
+      }
+    });
+  });
+  tt.innerHTML = html;
+}
+
+// ── EXAM COUNTDOWN ──
+let examInterval = null;
+
+function setExam() {
+  const name = document.getElementById('exam-name').value.trim();
+  const date = document.getElementById('exam-date').value;
+  if (!name || !date) { showToast('Enter exam name and date!', '⚠️'); return; }
+  examData = { name, date, set: new Date().toISOString() };
+  save();
+  startCountdown();
+  showToast(`Countdown set for ${name}!`, '⏳');
+}
+
+function clearExam() {
+  examData = null;
+  save();
+  if (examInterval) clearInterval(examInterval);
+  document.getElementById('cd-days').textContent = '00';
+  document.getElementById('cd-hours').textContent = '00';
+  document.getElementById('cd-mins').textContent = '00';
+  document.getElementById('cd-secs').textContent = '00';
+  document.getElementById('exam-name-display').textContent = 'Set your exam ↓';
+  document.getElementById('exam-date-display').textContent = 'No date set';
+  document.getElementById('exam-progress').style.width = '0%';
+  document.getElementById('stat-exam').textContent = '—';
+  showToast('Exam cleared', '↺');
+}
+
+function startCountdown() {
+  if (!examData) return;
+  if (examInterval) clearInterval(examInterval);
+
+  const examDate = new Date(examData.date + 'T00:00:00');
+  const setDate = new Date(examData.set);
+
+  document.getElementById('exam-name-display').textContent = examData.name;
+  document.getElementById('exam-date-display').textContent =
+    examDate.toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' });
+
+  function tick() {
+    const now = new Date();
+    const diff = examDate - now;
+
+    if (diff <= 0) {
+      clearInterval(examInterval);
+      document.getElementById('cd-days').textContent = '00';
+      document.getElementById('cd-hours').textContent = '00';
+      document.getElementById('cd-mins').textContent = '00';
+      document.getElementById('cd-secs').textContent = '00';
+      document.getElementById('stat-exam').textContent = '0';
+      showToast(`🎓 ${examData.name} is TODAY!`, '🎯');
+      return;
+    }
+
+    const days = Math.floor(diff / 86400000);
+    const hours = Math.floor((diff % 86400000) / 3600000);
+    const mins = Math.floor((diff % 3600000) / 60000);
+    const secs = Math.floor((diff % 60000) / 1000);
+
+    document.getElementById('cd-days').textContent = String(days).padStart(2,'0');
+    document.getElementById('cd-hours').textContent = String(hours).padStart(2,'0');
+    document.getElementById('cd-mins').textContent = String(mins).padStart(2,'0');
+    document.getElementById('cd-secs').textContent = String(secs).padStart(2,'0');
+    document.getElementById('stat-exam').textContent = days;
+
+    // Progress bar
+    const total = examDate - setDate;
+    const elapsed = now - setDate;
+    const pct = Math.min(100, Math.max(0, (elapsed / total) * 100));
+    document.getElementById('exam-progress').style.width = pct + '%';
+  }
+
+  tick();
+  examInterval = setInterval(tick, 1000);
+}
+
+// ── UTILS ──
+function escapeHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── INIT ──
+renderTodos();
+renderAssignments();
+renderTimetable();
+updateStats();
+if (examData) startCountdown();
+</script>
+</body>
+</html>
